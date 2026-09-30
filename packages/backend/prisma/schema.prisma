@@ -1,0 +1,117 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum FilmType {
+  MOVIE
+  SERIES
+}
+
+model User {
+  id        String    @id @default(uuid())
+  email     String    @unique
+  password  String
+  role      Role      @default(USER)
+  profiles  Profile[]
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  @@map("users")
+}
+
+model Profile {
+  id        String      @id @default(uuid())
+  name      String
+  avatarUrl String?     @map("avatar_url")
+  userId    String      @map("user_id")
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  watchlist Watchlist[]
+  history   History[]
+  ratings   Rating[]
+  createdAt DateTime    @default(now()) @map("created_at")
+
+  @@map("profiles")
+}
+
+model Film {
+  id             String      @id @default(uuid())
+  title          String
+  description    String
+  posterUrl      String      @map("poster_url")
+  backdropUrl    String?     @map("backdrop_url")
+  trailerUrl     String?     @map("trailer_url")
+  videoUrl       String?     @map("video_url")
+  releaseYear    Int         @map("release_year")
+  duration       Int?
+  maturityRating String?     @map("maturity_rating")
+  type           FilmType    @default(MOVIE)
+  featured       Boolean     @default(false)
+  genres         Genre[]     @relation("FilmGenres")
+  ratings        Rating[]
+  watchlist      Watchlist[]
+  history        History[]
+  createdAt      DateTime    @default(now()) @map("created_at")
+  updatedAt      DateTime    @updatedAt @map("updated_at")
+
+  @@map("films")
+}
+
+model Genre {
+  id    String @id @default(uuid())
+  name  String @unique
+  films Film[] @relation("FilmGenres")
+
+  @@map("genres")
+}
+
+model Watchlist {
+  id        String   @id @default(uuid())
+  profileId String   @map("profile_id")
+  filmId    String   @map("film_id")
+  profile   Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  film      Film     @relation(fields: [filmId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([profileId, filmId])
+  @@map("watchlists")
+}
+
+model History {
+  id              String   @id @default(uuid())
+  profileId       String   @map("profile_id")
+  filmId          String   @map("film_id")
+  progressSeconds Int      @default(0) @map("progress_seconds")
+  completed       Boolean  @default(false)
+  profile         Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  film            Film     @relation(fields: [filmId], references: [id], onDelete: Cascade)
+  watchedAt       DateTime @default(now()) @map("watched_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@unique([profileId, filmId])
+  @@map("histories")
+}
+
+model Rating {
+  id        String   @id @default(uuid())
+  profileId String   @map("profile_id")
+  filmId    String   @map("film_id")
+  score     Int
+  review    String?
+  profile   Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  film      Film     @relation(fields: [filmId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([profileId, filmId])
+  @@map("ratings")
+}
